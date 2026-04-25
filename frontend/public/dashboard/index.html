@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nero Sense — Plankton Detection</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
+  
+</head>
+<body>
+
+  <canvas id="bg-canvas"></canvas>
+  <div class="scanline-overlay"></div>
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo-mark">
+        <img src="logo.png" alt="Logo" class="logo-mark-img" onerror="this.style.display='none'" />
+      </div>
+      <h1 class="logo-text">Nero<span>Sense</span></h1>
+    </div>
+    <div class="header-right">
+      <div class="status-pill" id="api-status"><span class="dot"></span> <span id="api-status-text">CONNECTING…</span></div>
+      <div class="header-meta"><span id="clock"></span></div>
+    </div>
+  </header>
+
+  <!-- ── APP ── -->
+  <div class="app-layout">
+
+    <!-- ════ LEFT SIDEBAR: FILTERS ════ -->
+    <aside class="filters-sidebar">
+
+      <section class="panel" data-hide-in-embed>
+        <div class="panel-label">Water source</div>
+        <select id="river-select">
+          <option value="iskar">Iskar</option>
+        </select>
+      </section>
+
+      <section class="panel">
+        <div class="panel-label">Date Range</div>
+        <div class="date-range">
+          <input type="date" id="date-from" class="date-input" value="2024-05-21" />
+          <span class="date-sep">→</span>
+          <input type="date" id="date-to" class="date-input" value="2024-05-28" />
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-label">Sensors</div>
+        <div class="check-group" id="sensors-group">
+          <label><input type="checkbox" class="sensor-checkbox" value="temperature" checked/> Temperature</label>
+          <label><input type="checkbox" class="sensor-checkbox" value="turbidity" checked/> Turbidity</label>
+          <label><input type="checkbox" class="sensor-checkbox" value="chlorophyll" checked/> Chlorophyll</label>
+        </div>
+      </section>
+
+      <section class="panel" data-hide-in-embed>
+        <div class="panel-label">Satellite</div>
+        <select id="satellite-select">
+          <option value="sentinel-1">Sentinel-1</option>
+          <option value="sentinel-2">Sentinel-2</option>
+          <option value="sentinel-3">Sentinel-3</option>
+        </select>
+      </section>
+
+      <section class="panel">
+        <div class="panel-label">Indicators</div>
+        <div class="check-group" id="indicators-group">
+          <label><input type="checkbox" class="param-checkbox" value="chl_a" checked/> Chlorophyll-a</label>
+        </div>
+      </section>
+
+      <section class="panel" data-hide-in-embed>
+        <div class="panel-label">Hardware</div>
+        <div class="check-group" id="hardware-group">
+          <label class="muted">none</label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-label">Species Filter</div>
+        <div class="check-group">
+          <label><input type="checkbox" checked/> <span class="sp-dot" style="--c:#00ffc6"></span> Diatoms</label>
+          <label><input type="checkbox" checked/> <span class="sp-dot" style="--c:#7bffb0"></span> Dinoflagellates</label>
+          <label><input type="checkbox" checked/> <span class="sp-dot" style="--c:#3b82f6"></span> Cyanobacteria</label>
+          <label><input type="checkbox" checked/> <span class="sp-dot" style="--c:#a78bfa"></span> Chlorophytes</label>
+          <label><input type="checkbox" checked/> <span class="sp-dot" style="--c:#f59e0b"></span> Haptophytes</label>
+        </div>
+      </section>
+
+      <div class="sidebar-spacer"></div>
+
+      <button class="run-btn" id="run-btn" data-hide-in-embed>
+        <span class="run-icon">▶</span>
+        <span>RUN ANALYSIS</span>
+      </button>
+
+      <div class="export-row">
+        <button class="export-btn" id="export-json">JSON</button>
+        <button class="export-btn" id="export-csv">CSV</button>
+        <button class="export-btn" id="export-report">REPORT</button>
+      </div>
+
+    </aside>
+
+    <!-- ════ CONTENT AREA ════ -->
+    <div class="content-area">
+
+      <!-- ROW 1: phytoplankton map + water source map -->
+      <div class="top-row">
+
+        <!-- Phytoplankton Map -->
+        <div class="panel map-panel" id="card-phyto-map">
+          <div class="map-header">
+            <span class="panel-label">PHYTOPLANKTON MAP</span>
+            <div class="map-controls-row">
+              <button class="icon-btn" id="btn-zoom-in" title="Zoom in">＋</button>
+              <button class="icon-btn" id="btn-zoom-out" title="Zoom out">－</button>
+              <button class="icon-btn" id="btn-reset" title="Reset view">↺</button>
+              <button class="icon-btn" id="btn-phyto-expand" title="Expand">⛶</button>
+              <button class="icon-btn icon-btn--close" id="btn-phyto-close" title="Close (Esc)" aria-label="Close expanded map" hidden>✕</button>
+            </div>
+          </div>
+          <div id="map"></div>
+          <div class="usability-legend" id="phyto-legend">
+            <span class="ul-label">Low</span>
+            <span class="ul-bar phyto-bar"></span>
+            <span class="ul-label">Bloom</span>
+          </div>
+          <div class="map-footer">
+            <span id="phyto-selected-cell">Click a pixel to get bloom coordinates.</span>
+            <span id="zoom-level">Zoom: 7</span>
+          </div>
+        </div>
+
+        <!-- Water Source Map -->
+        <div class="panel map-panel" id="card-chl-heatmap">
+          <div class="map-header">
+            <span class="panel-label">Water Source Map <span id="chl-heatmap-indicator" style="color:var(--text-dim);font-weight:400;letter-spacing:0">(Chlorophyll-a)</span></span>
+            <div class="map-controls-row">
+              <span class="chart-status" id="chl-heatmap-status" style="margin-right:6px"></span>
+              <button class="icon-btn" id="btn-chl-zoom-in" title="Zoom in">＋</button>
+              <button class="icon-btn" id="btn-chl-zoom-out" title="Zoom out">－</button>
+              <button class="icon-btn" id="btn-chl-reset" title="Reset view">↺</button>
+              <button class="icon-btn" id="btn-chl-expand" title="Expand">⛶</button>
+              <button class="icon-btn icon-btn--close" id="btn-chl-close" title="Close (Esc)" aria-label="Close expanded map" hidden>✕</button>
+            </div>
+          </div>
+          <div class="chart-body chart-body--map">
+            <div id="chl-heatmap-map" class="heatmap-map"></div>
+            <div class="usability-legend" id="chl-usability-legend" hidden>
+              <span class="ul-label">Unused</span>
+              <span class="ul-bar"></span>
+              <span class="ul-label">Usable</span>
+            </div>
+            <div class="heatmap-legend" id="chl-heatmap-legend"></div>
+            <div class="chart-empty" id="chl-heatmap-empty">Awaiting data…</div>
+          </div>
+          <div class="map-footer" id="chl-heatmap-footer">
+            <span id="chl-selected-cell">Click a pixel to get coordinates for the boat.</span>
+            <span id="chl-zoom-level">Zoom: —</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ROW 2: charts (responsive grid) -->
+      <div class="charts-row">
+        <!-- 2. Time Series -->
+        <div class="panel chart-card" id="card-timeseries">
+          <div class="chart-card-header">
+            <span class="panel-label">Time Series — per Station</span>
+            <span class="chart-status" id="timeseries-status"></span>
+          </div>
+          <div class="chart-body">
+            <canvas id="chart-timeseries"></canvas>
+            <div class="chart-empty" id="timeseries-empty">Awaiting data…</div>
+          </div>
+        </div>
+
+        <!-- 3. Station Comparison Bar -->
+        <div class="panel chart-card" id="card-bar">
+          <div class="chart-card-header">
+            <span class="panel-label">Station Comparison</span>
+            <span class="chart-status" id="bar-status"></span>
+          </div>
+          <div class="chart-body">
+            <canvas id="chart-bar"></canvas>
+            <div class="chart-empty" id="bar-empty">Awaiting data…</div>
+          </div>
+        </div>
+
+        <!-- 4. Trend / Forecast -->
+        <div class="panel chart-card" id="card-trend">
+          <div class="chart-card-header">
+            <span class="panel-label">Trend &amp; Forecast</span>
+            <span class="chart-status" id="trend-status"></span>
+          </div>
+          <div class="chart-body">
+            <canvas id="chart-trend"></canvas>
+            <div class="chart-empty" id="trend-empty">Awaiting data…</div>
+          </div>
+        </div>
+
+        <!-- 5. Heatmap Table stations × dates -->
+        <div class="panel chart-card chart-card--wide" id="card-matrix">
+          <div class="chart-card-header">
+            <span class="panel-label">Stations × Dates Matrix</span>
+            <span class="chart-status" id="matrix-status"></span>
+          </div>
+          <div class="chart-body chart-body--table">
+            <div id="chart-matrix" class="matrix-wrap"></div>
+            <div class="chart-empty" id="matrix-empty">Awaiting data…</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("language","en");a.src=`https://maps.${c}apis.com/maps/api/js?`+e;a.onerror=()=>n(Error(p+" could not load."));a.onload=f;m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})
+    ({key: "AIzaSyD71GRyHu64kBQ1KUzaW2EMq3JHB1kn0gM", v: "weekly"});
+  </script>
+  <script src="geoscript.js"></script>
+  <script src="script.js"></script>
+  
+</body>
+</html>
