@@ -1,0 +1,37 @@
+# --- Core API ---
+fastapi
+uvicorn[standard]
+
+# --- Data validation ---
+pydantic-settings
+
+# --- Environment ---
+python-dotenv
+
+# --- Math & data ---
+numpy
+pandas
+scipy
+
+# --- Geometry (for routing / spatial ops) ---
+shapely
+
+# --- Logging ---
+loguru
+
+# --- Database ---
+sqlalchemy
+psycopg2-binary
+geoalchemy2
+
+# --- Google Earth Engine ---
+earthengine-api
+
+# --- Optional (recommended for HTTP calls / future APIs) ---
+requests
+
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
+pydantic[email]
+python-jose
+
