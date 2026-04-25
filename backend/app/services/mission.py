@@ -35,3 +35,19 @@ def create_mission(db: Session, obj):
     db.refresh(mission)
 
     return mission
+
+
+def get_mission(db: Session, id: int):
+    return db.query(Mission).filter(Mission.id == id).first()
+
+
+def get_missions(db: Session):
+    return db.query(Mission).all()
+
+
+def delete_mission(db: Session, id: int):
+    mission = get_mission(db, id)
+    if mission:
+        db.delete(mission)
+        db.commit()
+    return mission
