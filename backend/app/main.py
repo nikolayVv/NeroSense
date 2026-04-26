@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from app.core.database import SessionLocal
+from app.core.seed import seed_data
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
@@ -24,6 +26,11 @@ def create_app() -> FastAPI:
     def on_startup():
         Base.metadata.create_all(bind=engine)
         initialize_gee()
+        db = SessionLocal()
+        try:
+            seed_data(db)
+        finally:
+            db.close()
 
     return app
 

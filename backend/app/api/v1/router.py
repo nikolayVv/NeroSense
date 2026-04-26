@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     indicator,
     hardware,
     mission,
+    analysis
 )
 
 api_router = APIRouter()
@@ -18,3 +19,4 @@ api_router.include_router(indicator.router, prefix="/indicators", tags=["indicat
 api_router.include_router(hardware.router, prefix="/hardwares", tags=["hardwares"])
 api_router.include_router(mission.router, prefix="/missions", tags=["missions"])
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_router.include_router(analysis.router, prefix="/analysis", tags=["Analysis"])
