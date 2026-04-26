@@ -14,13 +14,54 @@ import {
 } from "@/components/ui/select";
 import { createMission } from "@/lib/missions";
 import { loadWaterSources, ISKAR_ID, type WaterSource } from "@/lib/waterSources";
-import {
-  fetchSensors,
-  fetchIndicators,
-  type Sensor,
-  type Indicator,
-} from "@/lib/catalog";
+import { fetchSensors, fetchIndicators } from "@/lib/catalog";
+import { listRobots, type Robot } from "@/lib/hardware";
+import { apiFetch } from "@/lib/api";
 import { toast } from "sonner";
+
+type Sensor = { id: number; label: string; provider: string };
+type Indicator = { id: number; label: string; unit?: string };
+
+type DataSourceApi = { id: number; name: string; provider: string };
+type IndicatorApi = { id: number; name: string; unit: string | null };
+
+async function ensureDataSources(): Promise<DataSourceApi[]> {
+  let data = await apiFetch<DataSourceApi[]>("/data-sources/");
+  if (data.length > 0) return data;
+
+  const fallback = await fetchSensors();
+  for (const item of fallback) {
+    await apiFetch("/data-sources/", {
+      method: "POST",
+      body: {
+        name: item.label,
+        provider: item.provider,
+        description: null,
+      },
+    });
+  }
+  data = await apiFetch<DataSourceApi[]>("/data-sources/");
+  return data;
+}
+
+async function ensureIndicators(): Promise<IndicatorApi[]> {
+  let data = await apiFetch<IndicatorApi[]>("/indicators/");
+  if (data.length > 0) return data;
+
+  const fallback = await fetchIndicators();
+  for (const item of fallback) {
+    await apiFetch("/indicators/", {
+      method: "POST",
+      body: {
+        name: item.label,
+        description: null,
+        unit: item.unit ?? null,
+      },
+    });
+  }
+  data = await apiFetch<IndicatorApi[]>("/indicators/");
+  return data;
+}
 
 export default function NewMission() {
   const navigate = useNavigate();
@@ -28,25 +69,48 @@ export default function NewMission() {
   const [sources, setSources] = useState<WaterSource[]>([]);
   const [sensorList, setSensorList] = useState<Sensor[]>([]);
   const [indicatorList, setIndicatorList] = useState<Indicator[]>([]);
+  const [hardwareList, setHardwareList] = useState<Robot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const [name, setName] = useState("");
   const [waterSource, setWaterSource] = useState<string>(ISKAR_ID);
   const [dateFrom, setDateFrom] = useState("2024-05-21");
   const [dateTo, setDateTo] = useState("2024-05-28");
-  const [sensors, setSensors] = useState<string[]>([]);
-  const [indicators, setIndicators] = useState<string[]>([]);
+  const [sensors, setSensors] = useState<number[]>([]);
+  const [indicators, setIndicators] = useState<number[]>([]);
+  const [hardware, setHardware] = useState<number[]>([]);
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
     document.title = "New Mission — Nero Sense";
-    Promise.all([loadWaterSources(), fetchSensors(), fetchIndicators()])
-      .then(([ws, ss, ind]) => {
+    Promise.all([
+      loadWaterSources(),
+      ensureDataSources(),
+      ensureIndicators(),
+      listRobots(),
+    ])
+      .then(([ws, ds, ind, hw]) => {
         setSources(ws);
-        setSensorList(ss);
-        setIndicatorList(ind);
-        setSensors([ss[0]?.id].filter(Boolean) as string[]);
-        setIndicators(["chl_a", "cyano"].filter((x) => ind.find((i) => i.id === x)));
+        const mappedSensors = ds.map((item) => ({
+          id: item.id,
+          label: item.name,
+          provider: item.provider,
+        }));
+        const mappedIndicators = ind.map((item) => ({
+          id: item.id,
+          label: item.name,
+          unit: item.unit ?? undefined,
+        }));
+        setSensorList(mappedSensors);
+        setIndicatorList(mappedIndicators);
+        setHardwareList(hw);
+        setSensors(mappedSensors[0] ? [mappedSensors[0].id] : []);
+        setIndicators(mappedIndicators[0] ? [mappedIndicators[0].id] : []);
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : "Failed to load mission options";
+        toast.error(message);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -58,33 +122,38 @@ export default function NewMission() {
   const selectedWaterLabel = selectedWater?.label ?? waterSource;
 
   const toggle = (
-    arr: string[],
-    setArr: (v: string[]) => void,
-    id: string
+    arr: number[],
+    setArr: (v: number[]) => void,
+    id: number
   ) => setArr(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
 
-  const launch = () => {
+  const launch = async () => {
     if (sensors.length === 0 && indicators.length === 0) {
       toast.error("Pick at least one sensor or indicator");
       return;
     }
-    const m = createMission(
-      {
+    setSubmitting(true);
+    try {
+      const m = await createMission({
+        name: name || undefined,
         waterSource,
         waterSourceLabel: selectedWaterLabel,
-        // English Name_en — used by the dashboard map to find the polygon
         waterSourceNameEn: selectedWater?.nameEn ?? selectedWaterLabel,
         dateFrom,
         dateTo,
         sensors,
         indicators,
-        hardware: [],
+        hardware,
         notes,
-      },
-      name || undefined
-    );
-    toast.success(`${m.name} created`);
-    navigate(`/app/missions/${m.id}`);
+      });
+      toast.success(`${m.name} created`);
+      navigate(`/app/missions/${m.id}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to create mission";
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -181,6 +250,27 @@ export default function NewMission() {
         </div>
 
         <div className="space-y-2">
+          <Label>Hardware (optional)</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {hardwareList.map((hw) => (
+              <label
+                key={hw.id}
+                className="flex items-center gap-2 p-2 rounded-md border border-border hover:border-primary/40 cursor-pointer text-sm"
+              >
+                <Checkbox
+                  checked={hardware.includes(hw.id)}
+                  onCheckedChange={() => toggle(hardware, setHardware, hw.id)}
+                />
+                <span className="truncate">
+                  {hw.name}
+                  <span className="text-muted-foreground text-xs ml-1">({hw.status})</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="notes">Notes</Label>
           <Input
             id="notes"
@@ -194,8 +284,8 @@ export default function NewMission() {
           <Button variant="ghost" onClick={() => navigate("/app/missions")}>
             Cancel
           </Button>
-          <Button onClick={launch} disabled={loading}>
-            Launch mission
+          <Button onClick={() => void launch()} disabled={loading || submitting}>
+            {submitting ? "Creating..." : "Launch mission"}
           </Button>
         </div>
       </Card>

@@ -20,14 +20,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { listRobots, saveRobot, deleteRobot, type Robot } from "@/lib/hardware";
+import { createRobot, listRobots, removeRobot, type Robot, type RobotStatus } from "@/lib/hardware";
 import { toast } from "sonner";
 
 const TYPES = ["River drone", "Underwater sampler", "Drifter buoy", "Bench microscope", "Other"];
-const STATUSES: Robot["status"][] = ["online", "offline", "maintenance"];
+const STATUSES: RobotStatus[] = ["online", "offline", "maintenance"];
 
 export default function Hardware() {
   const [robots, setRobots] = useState<Robot[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Omit<Robot, "id">>({
     name: "",
@@ -36,31 +38,51 @@ export default function Hardware() {
     notes: "",
   });
 
-  const refresh = () => setRobots(listRobots());
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const data = await listRobots();
+      setRobots(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load hardware";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     document.title = "Hardware — Nero Sense";
-    refresh();
+    void refresh();
   }, []);
 
-  const submit = () => {
+  const submit = async () => {
     if (!form.name) return toast.error("Name required");
-    saveRobot({
-      id: crypto.randomUUID(),
-      ...form,
-      lastSeen: new Date().toISOString(),
-    });
-    toast.success("Robot registered");
-    setForm({ name: "", type: TYPES[0], status: "offline", notes: "" });
-    setOpen(false);
-    refresh();
+    setSubmitting(true);
+    try {
+      await createRobot({
+        name: form.name.trim(),
+        type: form.type,
+        status: form.status,
+        notes: form.notes,
+      });
+      toast.success("Robot registered");
+      setForm({ name: "", type: TYPES[0], status: "offline", notes: "" });
+      setOpen(false);
+      await refresh();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to register robot";
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const cycleStatus = (r: Robot) => {
     const idx = STATUSES.indexOf(r.status);
     const next = STATUSES[(idx + 1) % STATUSES.length];
-    saveRobot({ ...r, status: next, lastSeen: new Date().toISOString() });
-    refresh();
+    setRobots((prev) => prev.map((item) => (item.id === r.id ? { ...item, status: next } : item)));
+    toast.info("Status cycling is currently local-only");
   };
 
   return (
@@ -109,14 +131,20 @@ export default function Hardware() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={submit}>Register</Button>
+              <Button variant="ghost" onClick={() => setOpen(false)} disabled={submitting}>Cancel</Button>
+              <Button onClick={() => void submit()} disabled={submitting}>
+                {submitting ? "Registering..." : "Register"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      {robots.length === 0 ? (
+      {loading ? (
+        <Card className="p-12 text-center border-dashed">
+          <p className="text-muted-foreground">Loading hardware...</p>
+        </Card>
+      ) : robots.length === 0 ? (
         <Card className="p-12 text-center border-dashed">
           <Cpu className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
           <p className="text-muted-foreground">No robots registered yet.</p>
@@ -130,9 +158,7 @@ export default function Hardware() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{r.name}</div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {r.type} {r.lastSeen && `· seen ${new Date(r.lastSeen).toLocaleString()}`}
-                </div>
+                <div className="text-xs text-muted-foreground truncate">{r.type}</div>
               </div>
               <button onClick={() => cycleStatus(r)} title="Click to cycle status">
                 <Badge
@@ -147,7 +173,16 @@ export default function Hardware() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => { deleteRobot(r.id); refresh(); toast.success("Removed"); }}
+                onClick={async () => {
+                  try {
+                    await removeRobot(r.id);
+                    toast.success("Removed");
+                    await refresh();
+                  } catch (err) {
+                    const message = err instanceof Error ? err.message : "Failed to remove robot";
+                    toast.error(message);
+                  }
+                }}
                 aria-label="Delete"
               >
                 <Trash2 className="h-4 w-4" />

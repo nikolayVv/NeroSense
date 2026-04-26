@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { login, getUser } from "@/lib/auth";
+import { login, register, getUser } from "@/lib/auth";
 import { toast } from "sonner";
 
 export default function Login() {
@@ -19,15 +19,29 @@ export default function Login() {
     if (getUser()) navigate("/app/missions", { replace: true });
   }, [navigate]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error("Email and password required");
       return;
     }
-    login(email, name || undefined);
-    toast.success(mode === "signup" ? "Account created" : "Welcome back");
-    navigate("/app/missions");
+    if (mode === "signup" && password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    try {
+      if (mode === "signup") {
+        await register(email, password, name || undefined);
+        toast.success("Account created");
+      } else {
+        await login(email, password);
+        toast.success("Welcome back");
+      }
+      navigate("/app/missions");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Authentication failed";
+      toast.error(message);
+    }
   };
 
   return (
@@ -85,6 +99,7 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              minLength={6}
               required
             />
           </div>

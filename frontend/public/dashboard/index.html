@@ -83,7 +83,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <!-- <section class="panel">
         <div class="panel-label">Species Filter</div>
         <div class="check-group">
           <label><input type="checkbox" checked/> <span class="sp-dot" style="--c:#00ffc6"></span> Diatoms</label>
@@ -92,7 +92,7 @@
           <label><input type="checkbox" checked/> <span class="sp-dot" style="--c:#a78bfa"></span> Chlorophytes</label>
           <label><input type="checkbox" checked/> <span class="sp-dot" style="--c:#f59e0b"></span> Haptophytes</label>
         </div>
-      </section>
+      </section> -->
 
       <div class="sidebar-spacer"></div>
 
@@ -142,7 +142,7 @@
         <!-- Water Source Map -->
         <div class="panel map-panel" id="card-chl-heatmap">
           <div class="map-header">
-            <span class="panel-label">Water Source Map <span id="chl-heatmap-indicator" style="color:var(--text-dim);font-weight:400;letter-spacing:0">(Chlorophyll-a)</span></span>
+            <span class="panel-label">Water Source Map-from Satelite <span id="chl-heatmap-indicator" style="color:var(--text-dim);font-weight:400;letter-spacing:0">(Chlorophyll-a)</span></span>
             <div class="map-controls-row">
               <span class="chart-status" id="chl-heatmap-status" style="margin-right:6px"></span>
               <button class="icon-btn" id="btn-chl-zoom-in" title="Zoom in">＋</button>
@@ -155,9 +155,9 @@
           <div class="chart-body chart-body--map">
             <div id="chl-heatmap-map" class="heatmap-map"></div>
             <div class="usability-legend" id="chl-usability-legend" hidden>
-              <span class="ul-label">Unused</span>
+              <span class="ul-label">0</span>
               <span class="ul-bar"></span>
-              <span class="ul-label">Usable</span>
+              <span class="ul-label">100%</span>
             </div>
             <div class="heatmap-legend" id="chl-heatmap-legend"></div>
             <div class="chart-empty" id="chl-heatmap-empty">Awaiting data…</div>
@@ -172,34 +172,10 @@
 
       <!-- ROW 2: charts (responsive grid) -->
       <div class="charts-row">
-        <!-- 2. Time Series -->
-        <div class="panel chart-card" id="card-timeseries">
-          <div class="chart-card-header">
-            <span class="panel-label">Time Series — per Station</span>
-            <span class="chart-status" id="timeseries-status"></span>
-          </div>
-          <div class="chart-body">
-            <canvas id="chart-timeseries"></canvas>
-            <div class="chart-empty" id="timeseries-empty">Awaiting data…</div>
-          </div>
-        </div>
-
-        <!-- 3. Station Comparison Bar -->
-        <div class="panel chart-card" id="card-bar">
-          <div class="chart-card-header">
-            <span class="panel-label">Station Comparison</span>
-            <span class="chart-status" id="bar-status"></span>
-          </div>
-          <div class="chart-body">
-            <canvas id="chart-bar"></canvas>
-            <div class="chart-empty" id="bar-empty">Awaiting data…</div>
-          </div>
-        </div>
-
-        <!-- 4. Trend / Forecast -->
+        <!-- 2. Combined trend -->
         <div class="panel chart-card" id="card-trend">
           <div class="chart-card-header">
-            <span class="panel-label">Trend &amp; Forecast</span>
+            <span class="panel-label">Clorophil-a over time/Combined</span>
             <span class="chart-status" id="trend-status"></span>
           </div>
           <div class="chart-body">
@@ -208,7 +184,33 @@
           </div>
         </div>
 
-        <!-- 5. Heatmap Table stations × dates -->
+        <!-- 3. In-situ trend -->
+        <div class="panel chart-card" id="card-trend-insitu">
+          <div class="chart-card-header">
+            <span class="panel-label">Clorophil-a over time/In-situ data</span>
+            <span class="chart-status" id="trend-insitu-status"></span>
+          </div>
+          <div class="chart-body">
+            <canvas id="chart-trend-insitu"></canvas>
+            <div class="chart-empty" id="trend-insitu-empty">Awaiting data…</div>
+          </div>
+        </div>
+
+        <!-- 4. Satellite trend -->
+        <div class="panel chart-card" id="card-trend-sat">
+          <div class="chart-card-header">
+            <span class="panel-label">Clorophil-a over time/Satelite data</span>
+            <span class="chart-status" id="trend-sat-status"></span>
+          </div>
+          <div class="chart-body">
+            <canvas id="chart-trend-sat"></canvas>
+            <div class="chart-empty" id="trend-sat-empty">Awaiting data…</div>
+          </div>
+        </div>
+
+        
+
+        <!-- 5. Heatmap Table stations × dates
         <div class="panel chart-card chart-card--wide" id="card-matrix">
           <div class="chart-card-header">
             <span class="panel-label">Stations × Dates Matrix</span>
@@ -218,7 +220,7 @@
             <div id="chart-matrix" class="matrix-wrap"></div>
             <div class="chart-empty" id="matrix-empty">Awaiting data…</div>
           </div>
-        </div>
+        </div> -->
 
       </div>
 

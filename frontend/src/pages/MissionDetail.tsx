@@ -13,13 +13,14 @@ export default function MissionDetail() {
 
   useEffect(() => {
     if (!id) return;
-    const m = getMission(id);
-    if (!m) {
-      navigate("/app/missions", { replace: true });
-      return;
-    }
-    setMission(m);
-    document.title = `${m.name} — Nero Sense`;
+    getMission(id).then((m) => {
+      if (!m) {
+        navigate("/app/missions", { replace: true });
+        return;
+      }
+      setMission(m);
+      document.title = `${m.name} — Nero Sense`;
+    });
   }, [id, navigate]);
 
   if (!mission) return null;

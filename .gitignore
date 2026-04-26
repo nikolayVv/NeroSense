@@ -1,7 +1,33 @@
-backend/app/credentials/*.json
-backend/.env
+# =========================
+# Python / Backend
+# =========================
 
-frontend/logs
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+backend/__pycache__/
+backend/**/*.pyc
+
+# env / secrets
+backend/.env
+backend/app/credentials/*.json
+
+# logs
+*.log
+
+
+# =========================
+# Node / Frontend
+# =========================
+
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+
+# logs
+frontend/logs/
 frontend/*.log
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
@@ -9,20 +35,28 @@ frontend/yarn-error.log*
 frontend/pnpm-debug.log*
 frontend/lerna-debug.log*
 
-frontend/node_modules
-frontend/dist
-frontend/dist-ssr
+# local env files
 frontend/*.local
 
+# =========================
+# IDE / Editors
+# =========================
 
-frontend/.vscode/*
-frontend/!.vscode/extensions.json
-frontend/.idea
-frontend/.DS_Store
-frontend/*.suo
-frontend/*.ntvs*
-frontend/*.njsproj
-frontend/*.sln
-frontend/*.sw?
+frontend/.vscode/
+!.vscode/extensions.json
+
+frontend/.idea/
+
+# OS files
 .DS_Store
-.gitignore
+**/.DS_Store
+
+# =========================
+# Misc build artifacts
+# =========================
+
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

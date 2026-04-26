@@ -9,16 +9,28 @@ import { toast } from "sonner";
 
 export default function Missions() {
   const [missions, setMissions] = useState<Mission[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     document.title = "Missions — Nero Sense";
-    setMissions(listMissions());
+    listMissions()
+      .then(setMissions)
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : "Failed to load missions";
+        toast.error(message);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleDelete = (id: string) => {
-    deleteMission(id);
-    setMissions(listMissions());
-    toast.success("Mission deleted");
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteMission(id);
+      setMissions((prev) => prev.filter((m) => m.id !== id));
+      toast.success("Mission deleted");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete mission";
+      toast.error(message);
+    }
   };
 
   return (
@@ -39,7 +51,11 @@ export default function Missions() {
         </Button>
       </div>
 
-      {missions.length === 0 ? (
+      {loading ? (
+        <Card className="p-12 text-center border-dashed">
+          <p className="text-muted-foreground">Loading missions...</p>
+        </Card>
+      ) : missions.length === 0 ? (
         <Card className="p-12 text-center border-dashed">
           <FlaskConical className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
           <p className="text-muted-foreground mb-4">No missions yet.</p>
@@ -74,8 +90,8 @@ export default function Missions() {
                   m.status === "completed"
                     ? "default"
                     : m.status === "running"
-                    ? "secondary"
-                    : "outline"
+                      ? "secondary"
+                      : "outline"
                 }
               >
                 {m.status}

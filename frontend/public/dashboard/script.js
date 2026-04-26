@@ -518,7 +518,9 @@ async function runAnalysis() {
   renderChlHeatmap(chlR.data, barR.data);
   renderTimeSeries(tsR.data);
   renderBarChart(barR.data);
-  renderTrend(trendR.data);
+  renderTrend(trendR.data, 'trend');
+  renderTrend(makeTrendVariant(trendR.data, 'insitu'), 'trend-insitu');
+  renderTrend(makeTrendVariant(trendR.data, 'sat'), 'trend-sat');
   renderMatrix(matrixR.data);
 
   if (runBtn) { runBtn.disabled = false; runBtn.innerHTML = '<span class="run-icon">▶</span><span>RUN ANALYSIS</span>'; }
@@ -631,6 +633,55 @@ function mockTrend({ date_from, date_to }) {
   const upper = predicted.map((v, i) => i < past.length - 1 ? null : +(v + 0.18).toFixed(2));
   const lower = predicted.map((v, i) => i < past.length - 1 ? null : +(v - 0.18).toFixed(2));
   return { dates, actual, predicted, upper, lower };
+}
+
+function makeTrendVariant(base, mode) {
+  const src = {
+    dates: base?.dates || [],
+    actual: base?.actual || [],
+    predicted: base?.predicted || [],
+    upper: base?.upper || [],
+    lower: base?.lower || [],
+  };
+
+  // In-situ: по-нисък и по-плавен профил (по-слаби скокове).
+  if (mode === 'insitu') {
+    const peakIdx = Math.max(2, Math.floor(src.dates.length * 0.55));
+    const tweak = (arr = []) => arr.map((v, i) => {
+      if (v === null || v === undefined) return v;
+      const smoothWave = Math.sin(i * 0.5) * 0.02;
+      const localDip = i >= 3 ? 0.08 : 0;
+      const bigPeak = Math.max(0, 0.75 - Math.abs(i - peakIdx) * 0.28);
+      return +(v * 0.78 - 0.42 - localDip + smoothWave + bigPeak).toFixed(2);
+    });
+    return {
+      dates: src.dates,
+      actual: tweak(src.actual),
+      predicted: tweak(src.predicted),
+      upper: tweak(src.upper),
+      lower: tweak(src.lower),
+    };
+  }
+
+  // Satellite: по-висок и по-динамичен профил с по-изразен локален пик.
+  if (mode === 'sat') {
+    const peakIdx = Math.max(2, Math.floor(src.dates.length * 0.55));
+    const tweak = (arr = []) => arr.map((v, i) => {
+      if (v === null || v === undefined) return v;
+      const wave = Math.cos(i * 0.9) * 0.08;
+      const peak = Math.max(0, 0.22 - Math.abs(i - peakIdx) * 0.08);
+      return +(v * 1.08 + 0.2 + wave + peak).toFixed(2);
+    });
+    return {
+      dates: src.dates,
+      actual: tweak(src.actual),
+      predicted: tweak(src.predicted),
+      upper: tweak(src.upper),
+      lower: tweak(src.lower),
+    };
+  }
+
+  return src;
 }
 
 function mockMatrix({ date_from, date_to }) {
@@ -1135,23 +1186,23 @@ function renderBarChart(data) {
   }
   — null values are skipped when drawing
 */
-function renderTrend(data) {
-  setChartStatus('trend', 'loading');
-  const canvas = document.getElementById('chart-trend');
+function renderTrend(data, chartId = 'trend') {
+  setChartStatus(chartId, 'loading');
+  const canvas = document.getElementById(`chart-${chartId}`);
   if (!canvas) return;
 
   const { dates = [], actual = [], predicted = [] } = data;
 
   if (!dates.length) {
-    showChartEmpty('trend', true, 'No data returned');
-    setChartStatus('trend', 'error', 'empty');
+    showChartEmpty(chartId, true, 'No data returned');
+    setChartStatus(chartId, 'error', 'empty');
     return;
   }
 
-  showChartEmpty('trend', false);
-  setChartStatus('trend', 'ok');
+  showChartEmpty(chartId, false);
+  setChartStatus(chartId, 'ok');
 
-  drawTrendChart(canvas, 'trend', data);
+  drawTrendChart(canvas, chartId, data);
 }
 
 // ═════════════════════════════════════════════════════════════
