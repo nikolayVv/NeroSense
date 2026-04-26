@@ -139,6 +139,7 @@ docker compose up --build
 
 - **Martina Dimitrova** – Remote Sensing & Environmental Science
   
+   [GitHub](https://github.com/martinadim) | [LinkedIn](https://www.linkedin.com/in/martina-dimitrova-8bbb47b6/)
 
 - **Elena Deleva** – Water Systems Engineering
   
