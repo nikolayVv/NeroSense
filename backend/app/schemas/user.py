@@ -6,6 +6,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
+    name: str
     password: str = Field(min_length=6, max_length=72)
 
 
@@ -14,6 +15,7 @@ class UserLogin(UserBase):
 
 
 class UserOut(UserBase):
+    name: str
     id: int
 
     class Config:
